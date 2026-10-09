@@ -3,7 +3,7 @@
 An interactive, single-page calculator for the output of a potentiometer wired
 as a voltage divider, and for the rotation needed to reach a given output.
 
-**Live page:** https://YOUR-USERNAME.github.io/pot-divider-calculator/
+**Live page:** https://Arvind595.github.io/pot-divider-calculator/
 
 > ⚠️ **AI-generated content.** This project was built with the help of an AI
 > assistant and reviewed by the author. Verify results before relying on them,
