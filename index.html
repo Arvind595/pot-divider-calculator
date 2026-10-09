@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Multiturn pot divider calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#DDE2DD; --surface:#EEF1ED; --knob:#F7F8F5; --ink:#17222A; --muted:#56636C;
+  --line:#AEB8B1; --accent:#0E5A6B; --wiper:#D99A00; --bad:#A3324F;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141A1E; --surface:#1C2429; --knob:#253037; --ink:#E4EAE6; --muted:#93A1A9;
+    --line:#3A4851; --accent:#62B6C7; --wiper:#F2C230; --bad:#E07D99;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141A1E; --surface:#1C2429; --knob:#253037; --ink:#E4EAE6; --muted:#93A1A9;
+  --line:#3A4851; --accent:#62B6C7; --wiper:#F2C230; --bad:#E07D99;
+}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Archivo",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  font-variant-numeric:tabular-nums;line-height:1.45;font-size:16px;
+}
+main{max-width:1100px;margin:0 auto;padding:clamp(16px,4vw,40px)}
+h1{font-stretch:72%;font-weight:760;font-size:clamp(2rem,5vw,3rem);line-height:1.02;margin:0 0 .35rem;letter-spacing:-.01em}
+.lede{margin:0 0 1.75rem;color:var(--muted);max-width:62ch}
+h2{font-size:1rem;font-weight:650;margin:0 0 .6rem}
+
+.setup{border-top:2px solid var(--ink);border-bottom:1px solid var(--line);padding:16px 0 18px;margin-bottom:28px;display:grid;gap:18px}
+.group h2{margin-bottom:.4rem}
+.fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.fields .wide{grid-column:span 2}
+@media (max-width:420px){.fields .wide{grid-column:1/-1}}
+.note{grid-column:1/-1;margin:0;font-size:.82rem;color:var(--muted)}
+label.f{display:block;font-size:.85rem;color:var(--muted)}
+.inp{display:flex;align-items:stretch;margin-top:4px;border:1px solid var(--line);border-radius:4px;background:var(--surface);overflow:hidden}
+.inp:focus-within{outline:2px solid var(--accent);outline-offset:1px}
+.inp input,.inp select{flex:1;min-width:0;border:0;background:transparent;color:var(--ink);font:inherit;font-size:1.02rem;padding:8px 10px;font-variant-numeric:tabular-nums}
+.inp select{cursor:pointer}
+.inp select option{background:var(--surface);color:var(--ink)}
+.inp input:focus,.inp select:focus{outline:none}
+.inp input:disabled{color:var(--muted)}
+.inp span{padding:8px 10px;color:var(--muted);border-left:1px solid var(--line);font-size:.9rem;display:flex;align-items:center}
+.chk{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+.chk input{accent-color:var(--accent);width:16px;height:16px}
+[hidden]{display:none!important}
+
+.layout{display:grid;grid-template-columns:minmax(260px,400px) 1fr;gap:clamp(20px,5vw,56px);align-items:start}
+@media (max-width:780px){.layout{grid-template-columns:1fr}}
+#dial{width:100%;max-width:400px;height:auto;display:block;margin:0 auto;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+#dial:active{cursor:grabbing}
+#dial:focus{outline:none}
+#dial:focus-visible .knob-face{stroke:var(--accent);stroke-width:3}
+.dial-help{text-align:center;color:var(--muted);font-size:.82rem;margin:.4rem 0 0}
+
+.readout{margin:0 0 18px}
+.readout .big{font-stretch:112%;font-weight:700;font-size:clamp(2.6rem,7vw,3.8rem);line-height:1;letter-spacing:-.02em}
+.readout .big small{font-size:.45em;font-weight:500;color:var(--muted);margin-left:.2em}
+.readout p{margin:.35rem 0 0;color:var(--muted);font-size:.92rem}
+.pos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:22px}
+@media (max-width:440px){.pos{grid-template-columns:1fr}}
+#hint{min-height:1.2em;color:var(--bad);font-size:.85rem;margin:-12px 0 12px}
+
+dl.res{display:grid;grid-template-columns:auto 1fr;gap:6px 18px;margin:0;font-size:.95rem}
+dl.res dt{color:var(--muted)}
+dl.res dt.sub{padding-left:14px}
+dl.res dd{margin:0;text-align:right;font-weight:550}
+dl.res .sep{grid-column:1/-1;border-top:1px solid var(--line);margin:4px 0}
+
+.plots{margin-top:36px}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.plot{width:100%;min-width:520px;height:auto;display:block}
+.plot .grid{stroke:var(--line);stroke-width:1}
+.plot .axis{stroke:var(--ink);stroke-width:1.2}
+.plot text{fill:var(--muted);font-size:12px;font-family:inherit}
+.plot .ideal{fill:none;stroke:var(--muted);stroke-width:1.5;stroke-dasharray:5 4}
+.plot .real{fill:none;stroke:var(--accent);stroke-width:2.5}
+.plot .band{fill:var(--accent);opacity:.16}
+.plot .shade{fill:var(--line);opacity:.4}
+.plot .lin{stroke:var(--muted);stroke-width:1.2;stroke-dasharray:4 4}
+.plot .errc{fill:none;stroke:var(--bad);stroke-width:2}
+.plot .cross{stroke:var(--wiper);stroke-width:1;stroke-dasharray:3 3}
+.plot .dot{fill:var(--wiper);stroke:var(--surface);stroke-width:2}
+.legend{display:flex;flex-wrap:wrap;gap:18px;font-size:.85rem;color:var(--muted);margin:.4rem 0 1.4rem}
+.legend i{display:inline-block;width:22px;height:0;border-top:2.5px solid var(--accent);vertical-align:middle;margin-right:6px}
+.legend i.d{border-top:1.5px dashed var(--muted)}
+.legend i.e{border-top-color:var(--bad)}
+.legend i.b{height:10px;border:0;background:var(--accent);opacity:.25}
+.legend i.s{height:10px;border:0;background:var(--line)}
+
+.math{margin-top:32px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:.9rem;max-width:74ch}
+.math p{margin:.3rem 0}
+.math code{font-family:inherit;color:var(--ink);font-weight:550}
+</style>
+</head>
+<body>
+<main>
+  <h1>Multiturn pot divider</h1>
+  <p class="lede">Pick a part, set the rails, then drag the knob or type a rotation, turn count or target output. The model includes dead band, end resistance, wiper load and the linearity tolerance band.</p>
+
+  <section class="setup">
+    <div class="group">
+      <h2>Potentiometer</h2>
+      <div class="fields">
+        <label class="f wide">Part
+          <div class="inp"><select id="selPart"></select></div>
+        </label>
+        <label class="f">Total resistance
+          <div class="inp"><input id="inR" type="number" inputmode="decimal" min="0" step="any"><span>kΩ</span></div>
+        </label>
+        <label class="f">Turns
+          <div class="inp"><input id="inN" type="number" inputmode="decimal" min="0" step="any"><span>turns</span></div>
+        </label>
+        <label class="f">Mechanical travel
+          <div class="inp"><input id="inMech" type="number" inputmode="decimal" min="0" step="any"><span>°</span></div>
+        </label>
+        <label class="f">Electrical travel
+          <div class="inp"><input id="inElec" type="number" inputmode="decimal" min="0" step="any"><span>°</span></div>
+        </label>
+        <label class="f">End resistance, each end
+          <div class="inp"><input id="inEnd" type="number" inputmode="decimal" min="0" step="any"><span>Ω</span></div>
+        </label>
+        <label class="f">Linearity
+          <div class="inp"><input id="inLin" type="number" inputmode="decimal" min="0" step="any"><span>± %</span></div>
+        </label>
+        <p class="note" id="partNote"></p>
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>Supply and load</h2>
+      <div class="fields">
+        <label class="f">Supply
+          <div class="inp"><select id="selSup">
+            <option value="single">Single rail</option>
+            <option value="split">Split rails (±)</option>
+            <option value="indep">Independent rails</option>
+          </select></div>
+        </label>
+        <label class="f" id="fSingle">Supply voltage
+          <div class="inp"><input id="inSingle" type="number" inputmode="decimal" step="any"><span>V</span></div>
+        </label>
+        <label class="f" id="fSplit">Rail magnitude
+          <div class="inp"><input id="inSplit" type="number" inputmode="decimal" min="0" step="any"><span>± V</span></div>
+        </label>
+        <label class="f" id="fHi">CW end voltage
+          <div class="inp"><input id="inHi" type="number" inputmode="decimal" step="any"><span>V</span></div>
+        </label>
+        <label class="f" id="fLo">CCW end voltage
+          <div class="inp"><input id="inLo" type="number" inputmode="decimal" step="any"><span>V</span></div>
+        </label>
+        <div>
+          <label class="f">Load on wiper
+            <div class="inp"><input id="inRL" type="number" inputmode="decimal" min="0" step="any"><span>kΩ</span></div>
+          </label>
+          <label class="chk"><input id="chkLoad" type="checkbox"> Include load</label>
+        </div>
+        <label class="f" id="fRef">Load returns to
+          <div class="inp"><input id="inRef" type="number" inputmode="decimal" step="any"><span>V</span></div>
+        </label>
+        <p class="note" id="supNote"></p>
+      </div>
+    </div>
+  </section>
+
+  <div class="layout">
+    <div>
+      <svg id="dial" viewBox="-170 -170 340 340" role="slider" tabindex="0" aria-label="Rotation" aria-valuemin="0">
+        <circle r="160" fill="none" stroke="var(--line)" stroke-width="5"/>
+        <circle id="travel" r="160" fill="none" stroke="var(--accent)" stroke-width="5" stroke-linecap="round" transform="rotate(-90)"/>
+        <g id="scale"></g>
+        <g id="knob">
+          <circle class="knob-face" r="100" fill="var(--knob)" stroke="var(--line)" stroke-width="1.5"/>
+          <g id="grip"></g>
+          <line x1="0" y1="-54" x2="0" y2="-90" stroke="var(--wiper)" stroke-width="7" stroke-linecap="round"/>
+        </g>
+        <text id="cTurns" y="4" text-anchor="middle" fill="var(--ink)" style="font-size:38px;font-weight:700;font-stretch:80%">0</text>
+        <text id="cDeg" y="26" text-anchor="middle" fill="var(--muted)" style="font-size:12px">turns + 0°</text>
+      </svg>
+      <p class="dial-help">Arrow keys move 1°, Shift+arrow 10°, Page Up/Down one turn. Hold Shift while dragging for fine control. Rotation is measured clockwise from the CCW stop.</p>
+    </div>
+
+    <div>
+      <div class="readout">
+        <div class="big" id="outBig">0<small>V</small></div>
+        <p id="outSub">Output at the wiper</p>
+      </div>
+
+      <div class="pos">
+        <label class="f">Rotation
+          <div class="inp"><input id="inDeg" type="number" inputmode="decimal" step="any"><span>°</span></div>
+        </label>
+        <label class="f">Turns
+          <div class="inp"><input id="inTurns" type="number" inputmode="decimal" step="any"><span>turns</span></div>
+        </label>
+        <label class="f">Output
+          <div class="inp"><input id="inV" type="number" inputmode="decimal" step="any"><span>V</span></div>
+        </label>
+      </div>
+      <p id="hint" aria-live="polite"></p>
+
+      <dl class="res">
+        <dt>Ideal output, θ ÷ travel</dt><dd id="rIdeal"></dd>
+        <dt>Error vs ideal</dt><dd id="rErr"></dd>
+        <dt class="sub">From dead band and end resistance</dt><dd id="rErrEnd"></dd>
+        <dt class="sub">From load</dt><dd id="rErrLoad"></dd>
+        <dt>Linearity tolerance</dt><dd id="rLin"></dd>
+        <dt>Worst-case error over travel</dt><dd id="rWorst"></dd>
+        <dt>Reachable output range</dt><dd id="rRange"></dd>
+        <div class="sep"></div>
+        <dt>Wiper position on element</dt><dd id="rK"></dd>
+        <dt>Wiper to CCW end</dt><dd id="rLow"></dd>
+        <dt>Wiper to CW end</dt><dd id="rHigh"></dd>
+        <dt>Wiper source impedance</dt><dd id="rTh"></dd>
+        <div class="sep"></div>
+        <dt>Sensitivity</dt><dd id="rSens"></dd>
+        <dt>Dead band, each end</dt><dd id="rDead"></dd>
+        <dt>Current from CW rail</dt><dd id="rI"></dd>
+      </dl>
+    </div>
+  </div>
+
+  <section class="plots">
+    <h2>Output across the full travel</h2>
+    <div class="scroll"><svg class="plot" id="plotV" viewBox="0 0 680 280" aria-label="Output voltage versus rotation"></svg></div>
+    <div class="legend" id="legV"></div>
+    <div id="errBlock">
+      <h2>Error vs ideal across the travel</h2>
+      <div class="scroll"><svg class="plot" id="plotE" viewBox="0 0 680 210" aria-label="Error versus rotation"></svg></div>
+      <div class="legend" id="legE"></div>
+    </div>
+  </section>
+
+  <section class="math">
+    <h2 style="color:var(--ink)">Model</h2>
+    <p><code>Ideal: V = V<sub>CCW</sub> + (θ / mechanical travel) × (V<sub>CW</sub> − V<sub>CCW</sub>)</code></p>
+    <p><code>Dead band d = (mechanical − electrical) / 2</code>, split equally at each end.</p>
+    <p><code>k = clamp((θ − d) / electrical travel, 0, 1)</code></p>
+    <p><code>R<sub>CCW</sub> = R<sub>end</sub> + k(R − 2R<sub>end</sub>)</code>, <code>R<sub>CW</sub> = R − R<sub>CCW</sub></code></p>
+    <p><code>V<sub>out</sub> = (V<sub>CW</sub>/R<sub>CW</sub> + V<sub>CCW</sub>/R<sub>CCW</sub> + V<sub>ref</sub>/R<sub>L</sub>) / (1/R<sub>CW</sub> + 1/R<sub>CCW</sub> + 1/R<sub>L</sub>)</code>, nodal solution at the wiper with the load returned to V<sub>ref</sub>.</p>
+    <p>Entering an output voltage solves this numerically for θ. The linearity band is ± tolerance × |V<sub>CW</sub> − V<sub>CCW</sub>| around the modelled curve. Wiper contact resistance and resistance tolerance are not modelled.</p>
+  </section>
+  <footer class="math" role="note">
+    <h2 style="color:var(--ink)">AI-generated content</h2>
+    <p>This calculator was written with the help of an AI assistant (Claude, by Anthropic) and reviewed by the author. Part presets are typical values, not verified datasheet figures. Check results against your part's datasheet and your own measurements before using them in a design. Provided as is, without warranty. See the <a href="https://github.com/" id="repoLink" style="color:var(--accent)">source repository</a> for the license.</p>
+  </footer>
+</main>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+
+  // Typical datasheet figures, recalled rather than looked up. Verify against your part's datasheet.
+  const PARTS = [
+    {id:'custom', name:'Custom'},
+    {id:'b3590s', name:'Bourns 3590S, 10-turn wirewound', mech:3600, elec:3600, endAbs:1, endPct:0.1, lin:0.25},
+    {id:'b3540s', name:'Bourns 3540S, 10-turn wirewound', mech:3600, elec:3600, endAbs:1, endPct:0.1, lin:0.25},
+    {id:'b3543s', name:'Bourns 3543S, 3-turn wirewound', mech:1080, elec:1080, endAbs:1, endPct:0.1, lin:0.25},
+    {id:'v534', name:'Vishay Spectrol 534, 10-turn wirewound', mech:3600, elec:3600, endAbs:1, endPct:0.1, lin:0.25},
+    {id:'v533', name:'Vishay Spectrol 533, 3-turn wirewound', mech:1080, elec:1080, endAbs:1, endPct:0.1, lin:0.25},
+    {id:'g1t', name:'Generic single-turn panel pot', mech:300, elec:280, endAbs:0, endPct:1, lin:10}
+  ];
+
+  const st = {
+    part:'b3590s', R:10, mech:3600, elec:3600, Rend:10, lin:0.25,
+    sup:'split', single:5, split:5, hi:5, lo:-5,
+    RL:100, load:true, ref:0, theta:1800
+  };
+  const C = 2*Math.PI*160;
+  const clamp = (x,a,b) => Math.min(Math.max(x,a),b);
+
+  function rails(){
+    if(st.sup === 'single') return [st.single, 0];
+    if(st.sup === 'split') return [st.split, -st.split];
+    return [st.hi, st.lo];
+  }
+  const endFor = p => Math.max(p.endAbs, p.endPct/100*st.R*1e3);
+
+  function model(theta, withLoad){
+    const [vH, vL] = rails();
+    const R = st.R*1e3, Re = R - 2*st.Rend, dead = (st.mech - st.elec)/2;
+    const k = clamp((theta - dead)/st.elec, 0, 1);
+    const Rl = st.Rend + k*Re, Rh = R - Rl;
+    const GL = (withLoad && st.load) ? 1/(st.RL*1e3) : 0;
+    let V;
+    if(Rl <= 0) V = vL;
+    else if(Rh <= 0) V = vH;
+    else V = (vH/Rh + vL/Rl + st.ref*GL)/(1/Rh + 1/Rl + GL);
+    return {V, k, Rl, Rh, GL};
+  }
+  function ideal(theta){
+    const [vH, vL] = rails();
+    return vL + theta/st.mech*(vH - vL);
+  }
+  function thetaFromV(t){
+    let a = 0, b = st.mech;
+    const fa = model(a,true).V, fb = model(b,true).V, inc = fb >= fa;
+    if(inc ? t <= fa : t >= fa) return a;
+    if(inc ? t >= fb : t <= fb) return b;
+    for(let i=0;i<70;i++){
+      const m = (a+b)/2;
+      if((model(m,true).V < t) === inc) a = m; else b = m;
+    }
+    return (a+b)/2;
+  }
+
+  const sgn = s => s.replace(/^-/, '−');
+  function fmtV(v){
+    const a = Math.abs(v);
+    if(a === 0) return '0 V';
+    if(a < 1e-3) return sgn((v*1e6).toFixed(2))+' µV';
+    if(a < 1) return sgn((v*1e3).toFixed(a<0.01?3:2))+' mV';
+    return sgn(v.toFixed(4))+' V';
+  }
+  function fmtR(o){
+    if(o >= 1e6) return (o/1e6).toPrecision(4)+' MΩ';
+    if(o >= 1e3) return (o/1e3).toPrecision(4)+' kΩ';
+    if(o <= 0) return '0 Ω';
+    return o.toPrecision(4)+' Ω';
+  }
+  function fmtI(i){
+    const a = Math.abs(i);
+    if(a >= 1) return sgn(i.toFixed(3))+' A';
+    if(a >= 1e-3) return sgn((i*1e3).toFixed(3))+' mA';
+    return sgn((i*1e6).toFixed(2))+' µA';
+  }
+  const fix = (x,d) => String(+x.toFixed(d));
+  const par = (a,b) => (a+b)>0 ? a*b/(a+b) : 0;
+
+  // Dial scale
+  (function(){
+    let s = '';
+    for(let i=0;i<72;i++){
+      const a = i*5, rad = a*Math.PI/180, major = a%30===0;
+      const sx = Math.sin(rad), cy = -Math.cos(rad), r2 = major ? 132 : 141;
+      s += `<line x1="${(sx*148).toFixed(2)}" y1="${(cy*148).toFixed(2)}" x2="${(sx*r2).toFixed(2)}" y2="${(cy*r2).toFixed(2)}" stroke="${major?'var(--ink)':'var(--muted)'}" stroke-width="${major?2:1}"/>`;
+      if(major) s += `<text x="${(sx*118).toFixed(2)}" y="${(cy*118).toFixed(2)}" text-anchor="middle" dominant-baseline="central" fill="var(--muted)" style="font-size:11px">${a}</text>`;
+    }
+    $('scale').innerHTML = s;
+    let g = '';
+    for(let i=0;i<36;i++){
+      const rad = i*10*Math.PI/180, sx = Math.sin(rad), cy = -Math.cos(rad);
+      g += `<line x1="${(sx*92).toFixed(2)}" y1="${(cy*92).toFixed(2)}" x2="${(sx*99).toFixed(2)}" y2="${(cy*99).toFixed(2)}" stroke="var(--line)" stroke-width="2"/>`;
+    }
+    $('grip').innerHTML = g;
+  })();
+
+  function niceTicks(min, max, count){
+    const span = max-min;
+    if(!(span>0)) return {ticks:[min], step:1};
+    const raw = span/count, mag = Math.pow(10, Math.floor(Math.log10(raw))), n = raw/mag;
+    const step = (n<1.5?1:n<3?2:n<7?5:10)*mag;
+    const ticks = [];
+    for(let v = Math.ceil(min/step - 1e-9)*step; v <= max + step*1e-9; v += step) ticks.push(+v.toFixed(12));
+    return {ticks, step};
+  }
+  const tickLabel = (v, step) => sgn(v.toFixed(Math.max(0, -Math.floor(Math.log10(step)+1e-9))));
+
+  function plot(el, o){
+    const W = o.W, H = o.H, m = {l:62, r:16, t:12, b:40};
+    const xMax = st.mech;
+    const X = t => m.l + t/xMax*(W-m.l-m.r);
+    const Y = v => H-m.b - (v-o.yMin)/(o.yMax-o.yMin)*(H-m.t-m.b);
+    let s = '';
+    (o.shade||[]).forEach(([a,b]) => {
+      s += `<rect class="shade" x="${X(a)}" y="${m.t}" width="${Math.max(X(b)-X(a),0)}" height="${H-m.t-m.b}"/>`;
+    });
+    const xt = niceTicks(0, xMax/360, 8), yt = niceTicks(o.yMin, o.yMax, 5);
+    xt.ticks.forEach(tr => {
+      const x = X(tr*360);
+      s += `<line class="grid" x1="${x}" y1="${m.t}" x2="${x}" y2="${H-m.b}"/>`;
+      s += `<text x="${x}" y="${H-m.b+16}" text-anchor="middle">${tickLabel(tr, xt.step)}</text>`;
+    });
+    yt.ticks.forEach(v => {
+      const y = Y(v);
+      s += `<line class="grid" x1="${m.l}" y1="${y}" x2="${W-m.r}" y2="${y}"/>`;
+      s += `<text x="${m.l-8}" y="${y}" text-anchor="end" dominant-baseline="central">${tickLabel(v, yt.step)}</text>`;
+    });
+    if(o.band){
+      const up = o.band.map(p => `${X(p[0]).toFixed(2)},${Y(p[1]+p[2]).toFixed(2)}`);
+      const dn = o.band.slice().reverse().map(p => `${X(p[0]).toFixed(2)},${Y(p[1]-p[2]).toFixed(2)}`);
+      s += `<polygon class="band" points="${up.concat(dn).join(' ')}"/>`;
+    }
+    (o.hlines||[]).forEach(v => { const y = Y(v); s += `<line class="lin" x1="${m.l}" y1="${y}" x2="${W-m.r}" y2="${y}"/>`; });
+    if(o.yMin < 0 && o.yMax > 0) s += `<line class="axis" x1="${m.l}" y1="${Y(0)}" x2="${W-m.r}" y2="${Y(0)}" opacity=".5"/>`;
+    s += `<line class="axis" x1="${m.l}" y1="${H-m.b}" x2="${W-m.r}" y2="${H-m.b}"/>`;
+    s += `<line class="axis" x1="${m.l}" y1="${m.t}" x2="${m.l}" y2="${H-m.b}"/>`;
+    s += `<text x="${(m.l+W-m.r)/2}" y="${H-6}" text-anchor="middle">Rotation (turns)</text>`;
+    s += `<text transform="translate(14 ${(m.t+H-m.b)/2}) rotate(-90)" text-anchor="middle">${o.yLabel}</text>`;
+    o.series.forEach(sr => {
+      const d = sr.pts.map((p,i) => (i?'L':'M')+X(p[0]).toFixed(2)+' '+Y(p[1]).toFixed(2)).join('');
+      s += `<path class="${sr.cls}" d="${d}"/>`;
+    });
+    if(o.marker){
+      const mx = X(o.marker[0]), my = Y(o.marker[1]);
+      s += `<line class="cross" x1="${mx}" y1="${H-m.b}" x2="${mx}" y2="${my}"/>`;
+      s += `<line class="cross" x1="${m.l}" y1="${my}" x2="${mx}" y2="${my}"/>`;
+      s += `<circle class="dot" cx="${mx}" cy="${my}" r="5.5"/>`;
+    }
+    el.innerHTML = s;
+  }
+
+  function problem(){
+    const [vH, vL] = rails();
+    if(!(st.R > 0)) return 'Total resistance must be greater than zero.';
+    if(!(st.mech > 0) || !(st.elec > 0)) return 'Travel must be greater than zero.';
+    if(st.elec > st.mech) return 'Electrical travel cannot exceed mechanical travel.';
+    if(!(st.Rend >= 0) || 2*st.Rend >= st.R*1e3) return 'End resistance must be at least 0 and less than half the total resistance.';
+    if(!(st.lin >= 0)) return 'Linearity cannot be negative.';
+    if(!isFinite(vH) || !isFinite(vL) || vH === vL) return 'The two ends of the pot need different voltages.';
+    if(st.load && !(st.RL > 0)) return 'Load resistance must be greater than zero.';
+    if(st.load && !isFinite(st.ref)) return 'Enter the voltage the load returns to.';
+    return '';
+  }
+
+  function syncPartFields(src){
+    if(src !== 'inR') $('inR').value = fix(st.R, 6);
+    if(src !== 'inN') $('inN').value = fix(st.mech/360, 4);
+    if(src !== 'inMech') $('inMech').value = fix(st.mech, 3);
+    if(src !== 'inElec') $('inElec').value = fix(st.elec, 3);
+    if(src !== 'inEnd') $('inEnd').value = fix(st.Rend, 4);
+    if(src !== 'inLin') $('inLin').value = fix(st.lin, 4);
+    $('selPart').value = st.part;
+    const p = PARTS.find(x => x.id === st.part);
+    $('partNote').textContent = st.part === 'custom'
+      ? 'Custom part. Enter values from your datasheet.'
+      : `Typical figures for the ${p.name.split(',')[0]}, from memory rather than a live datasheet lookup. Check your part's datasheet and edit any field to override.`;
+  }
+
+  function syncSupplyFields(src){
+    $('selSup').value = st.sup;
+    $('fSingle').hidden = st.sup !== 'single';
+    $('fSplit').hidden = st.sup !== 'split';
+    $('fHi').hidden = $('fLo').hidden = st.sup !== 'indep';
+    $('fRef').hidden = !st.load;
+    $('inRL').disabled = !st.load;
+    $('chkLoad').checked = st.load;
+    if(src !== 'inSingle') $('inSingle').value = fix(st.single, 4);
+    if(src !== 'inSplit') $('inSplit').value = fix(st.split, 4);
+    if(src !== 'inHi') $('inHi').value = fix(st.hi, 4);
+    if(src !== 'inLo') $('inLo').value = fix(st.lo, 4);
+    if(src !== 'inRL') $('inRL').value = fix(st.RL, 6);
+    if(src !== 'inRef') $('inRef').value = fix(st.ref, 4);
+    const [vH, vL] = rails();
+    $('supNote').textContent = `CW end at ${fmtV(vH)}, CCW end at ${fmtV(vL)}.` + (st.load ? ` Load returns to ${fmtV(st.ref)}.` : '');
+  }
+
+  function render(src){
+    syncPartFields(src);
+    syncSupplyFields(src);
+    const err = problem();
+    const hint = $('hint');
+    if(err){ hint.textContent = err; return; }
+    if(src !== 'inV') hint.textContent = '';
+
+    const [vH, vL] = rails();
+    const span = Math.abs(vH - vL);
+    st.theta = clamp(st.theta, 0, st.mech);
+    const T = st.mech, dead = (st.mech - st.elec)/2;
+    const r = model(st.theta, true), rU = model(st.theta, false), vI = ideal(st.theta);
+    const V = r.V;
+
+    // Dial
+    const turns = Math.floor(st.theta/360 + 1e-9), within = st.theta - turns*360;
+    $('knob').setAttribute('transform', `rotate(${within.toFixed(3)})`);
+    $('travel').setAttribute('stroke-dasharray', `${(st.theta/T*C).toFixed(2)} ${C.toFixed(2)}`);
+    $('cTurns').textContent = turns;
+    $('cDeg').textContent = `turn${turns===1?'':'s'} + ${within.toFixed(1)}°`;
+    const dial = $('dial');
+    dial.setAttribute('aria-valuemax', T);
+    dial.setAttribute('aria-valuenow', st.theta.toFixed(1));
+    dial.setAttribute('aria-valuetext', `${st.theta.toFixed(1)} degrees, ${V.toFixed(4)} volts`);
+
+    if(src !== 'inDeg') $('inDeg').value = fix(st.theta, 2);
+    if(src !== 'inTurns') $('inTurns').value = fix(st.theta/360, 4);
+    if(src !== 'inV') $('inV').value = fix(V, 4);
+
+    $('outBig').innerHTML = `${sgn(V.toFixed(Math.abs(V)<10?4:3))}<small>V</small>`;
+    $('outSub').textContent = st.load ? `Output at the wiper with ${fmtR(st.RL*1e3)} load` : 'Output at the wiper, unloaded';
+
+    const pct = e => `${fmtV(e)} (${sgn((e/span*100).toFixed(3))} % FS)`;
+    $('rIdeal').textContent = fmtV(vI);
+    $('rErr').textContent = pct(V - vI);
+    $('rErrEnd').textContent = fmtV(rU.V - vI);
+    $('rErrLoad').textContent = st.load ? fmtV(V - rU.V) : 'none';
+    const linV = st.lin/100*span;
+    $('rLin').textContent = `± ${fmtV(linV).replace('−','')}`;
+
+    let worst = 0, worstT = 0;
+    const ptsReal = [], ptsErr = [], band = [];
+    const N = 400;
+    for(let i=0;i<=N;i++){
+      const t = i/N*T, v = model(t, true).V, e = v - ideal(t);
+      ptsReal.push([t, v]); ptsErr.push([t, e*1e3]); band.push([t, v, linV]);
+      if(Math.abs(e) > Math.abs(worst)){ worst = e; worstT = t; }
+    }
+    $('rWorst').textContent = `${fmtV(worst)} at ${(worstT/360).toFixed(2)} turns`;
+    const v0 = model(0,true).V, v1 = model(T,true).V;
+    $('rRange').textContent = `${fmtV(Math.min(v0,v1))} to ${fmtV(Math.max(v0,v1))}`;
+
+    $('rK').textContent = (r.k*100).toFixed(3)+' %';
+    $('rLow').textContent = fmtR(r.Rl);
+    $('rHigh').textContent = fmtR(r.Rh);
+    const Rth = par(r.Rl, r.Rh);
+    $('rTh').textContent = fmtR(Rth) + (st.load ? `, ${fmtR(par(Rth, st.RL*1e3))} with load` : '');
+    const Re = st.R*1e3 - 2*st.Rend;
+    const perDeg = span*(Re/(st.R*1e3))/st.elec;
+    $('rSens').textContent = `${fmtV(perDeg)} per degree, ${fmtV(perDeg*360)} per turn`;
+    $('rDead').textContent = dead > 0 ? `${fix(dead,2)}°` : 'none';
+    const I = r.Rh > 0 ? (vH - V)/r.Rh : (V - vL)/r.Rl + r.GL*(V - st.ref);
+    $('rI').textContent = fmtI(I);
+
+    // Output plot
+    const yLo = Math.min(vH, vL) - linV, yHi = Math.max(vH, vL) + linV;
+    const shade = dead > 0 ? [[0, dead], [T-dead, T]] : [];
+    plot($('plotV'), {W:680, H:280, yMin:yLo, yMax:yHi, yLabel:'Output (V)', shade,
+      band: linV > 0 ? band : null,
+      series:[{pts:[[0, vL],[T, vH]], cls:'ideal'}, {pts:ptsReal, cls:'real'}],
+      marker:[st.theta, V]});
+    let leg = `<span><i></i>${st.load ? 'Modelled output with load' : 'Modelled output'}</span><span><i class="d"></i>Ideal, θ ÷ travel</span>`;
+    if(linV > 0) leg += `<span><i class="b"></i>Linearity tolerance</span>`;
+    if(dead > 0) leg += `<span><i class="s"></i>Dead band</span>`;
+    $('legV').innerHTML = leg;
+
+    // Error plot
+    const eMin = Math.min(...ptsErr.map(p=>p[1]), -linV*1e3), eMax = Math.max(...ptsErr.map(p=>p[1]), linV*1e3);
+    const eb = $('errBlock');
+    if(eMax - eMin > 1e-9){
+      eb.hidden = false;
+      const pad = (eMax - eMin)*0.08;
+      plot($('plotE'), {W:680, H:210, yMin:eMin-pad, yMax:eMax+pad, yLabel:'Error (mV)', shade,
+        hlines: linV > 0 ? [linV*1e3, -linV*1e3] : [],
+        series:[{pts:ptsErr, cls:'errc'}], marker:[st.theta, (V - vI)*1e3]});
+      $('legE').innerHTML = `<span><i class="e"></i>Modelled minus ideal</span>` + (linV > 0 ? `<span><i class="d"></i>± linearity tolerance</span>` : '');
+    } else eb.hidden = true;
+  }
+
+  // Part selection
+  $('selPart').innerHTML = PARTS.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+  function applyPart(id){
+    st.part = id;
+    const p = PARTS.find(x => x.id === id);
+    if(!p || id === 'custom') return;
+    st.mech = p.mech; st.elec = p.elec; st.lin = p.lin; st.Rend = endFor(p);
+  }
+  $('selPart').addEventListener('change', e => { applyPart(e.target.value); render(null); });
+
+  const num = el => parseFloat(el.value);
+  const toCustom = () => { st.part = 'custom'; };
+  $('inR').addEventListener('input', e => {
+    st.R = num(e.target);
+    const p = PARTS.find(x => x.id === st.part);
+    if(p && p.id !== 'custom' && st.R > 0) st.Rend = endFor(p);
+    render('inR');
+  });
+  $('inN').addEventListener('input', e => { const n = num(e.target); toCustom(); st.mech = st.elec = n*360; render('inN'); });
+  $('inMech').addEventListener('input', e => { toCustom(); st.mech = num(e.target); render('inMech'); });
+  $('inElec').addEventListener('input', e => { toCustom(); st.elec = num(e.target); render('inElec'); });
+  $('inEnd').addEventListener('input', e => { toCustom(); st.Rend = num(e.target); render('inEnd'); });
+  $('inLin').addEventListener('input', e => { toCustom(); st.lin = num(e.target); render('inLin'); });
+
+  // Supply
+  $('selSup').addEventListener('change', e => {
+    const [vH, vL] = rails();
+    st.sup = e.target.value;
+    if(st.sup === 'single') st.single = vH;
+    else if(st.sup === 'split') st.split = Math.max(Math.abs(vH), Math.abs(vL));
+    else { st.hi = vH; st.lo = vL; }
+    render(null);
+  });
+  [['inSingle','single'],['inSplit','split'],['inHi','hi'],['inLo','lo'],['inRL','RL'],['inRef','ref']].forEach(([id,key]) => {
+    $(id).addEventListener('input', e => { st[key] = num(e.target); render(id); });
+  });
+  $('chkLoad').addEventListener('change', e => { st.load = e.target.checked; render(null); });
+
+  document.querySelectorAll('.setup input').forEach(el => el.addEventListener('change', () => render(null)));
+
+  // Position inputs
+  $('inDeg').addEventListener('input', e => { const v = num(e.target); if(isFinite(v)){ st.theta = v; render('inDeg'); } });
+  $('inTurns').addEventListener('input', e => { const v = num(e.target); if(isFinite(v)){ st.theta = v*360; render('inTurns'); } });
+  $('inV').addEventListener('input', e => {
+    const v = num(e.target);
+    if(!isFinite(v) || problem()) return;
+    const v0 = model(0,true).V, v1 = model(st.mech,true).V;
+    const lo = Math.min(v0,v1), hi = Math.max(v0,v1);
+    $('hint').textContent = (v < lo || v > hi) ? `This setup can only reach ${fmtV(lo)} to ${fmtV(hi)}.` : '';
+    st.theta = thetaFromV(v);
+    render('inV');
+  });
+  ['inDeg','inTurns','inV'].forEach(id => $(id).addEventListener('change', () => { $('hint').textContent=''; render(null); }));
+
+  // Dial
+  const dial = $('dial');
+  let dragging = false, last = 0;
+  const ptAngle = e => {
+    const r = dial.getBoundingClientRect();
+    return Math.atan2(e.clientX - (r.left + r.width/2), -(e.clientY - (r.top + r.height/2))) * 180/Math.PI;
+  };
+  dial.addEventListener('pointerdown', e => { dragging = true; last = ptAngle(e); dial.setPointerCapture(e.pointerId); dial.focus({preventScroll:true}); });
+  dial.addEventListener('pointermove', e => {
+    if(!dragging) return;
+    const a = ptAngle(e);
+    let d = a - last;
+    if(d > 180) d -= 360;
+    if(d < -180) d += 360;
+    last = a;
+    st.theta += d*(e.shiftKey ? 0.1 : 1);
+    render(null);
+  });
+  const stop = () => { dragging = false; };
+  dial.addEventListener('pointerup', stop);
+  dial.addEventListener('pointercancel', stop);
+  dial.addEventListener('keydown', e => {
+    const step = e.shiftKey ? 10 : 1;
+    const map = {ArrowRight:step, ArrowUp:step, ArrowLeft:-step, ArrowDown:-step, PageUp:360, PageDown:-360};
+    if(e.key in map){ st.theta += map[e.key]; render(null); e.preventDefault(); }
+    else if(e.key === 'Home'){ st.theta = 0; render(null); e.preventDefault(); }
+    else if(e.key === 'End'){ st.theta = st.mech; render(null); e.preventDefault(); }
+  });
+
+  applyPart(st.part);
+  render(null);
+})();
+</script>
+</body>
+</html>
